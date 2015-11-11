@@ -242,6 +242,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             }
         }
     }
+
     @Override
     public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
         prepareLayoutProvider(state);
@@ -519,7 +520,9 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             }
 
             /**
-             * Get adapter position of item.
+             * Get position of item.
+             *
+             * @return Adapter position.
              */
             public int getPosition() {
                 return mPosition;
@@ -528,6 +531,8 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             /**
              * Copy absolute rect of item.
              * There is no getter because {@link Rect} is mutable type.
+             *
+             * @return Absolute rect of item.
              */
             public Rect copyRect() {
                 return new Rect(mRect);
