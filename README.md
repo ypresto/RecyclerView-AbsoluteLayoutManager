@@ -26,6 +26,13 @@ It is just same as UICollectionViewLayout. :)
 See [example](example/src/main/java/net/ypresto/recyclerview/absolutelayoutmanager/example/SquareVerticalLayoutProvider.java).
 
 
+TODO
+----
+
+- Decoration margin is not supported yet.
+- Predictive animation is not supported yet.
+
+
 Compatibility
 ----
 
