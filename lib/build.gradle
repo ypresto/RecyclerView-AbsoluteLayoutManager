@@ -1,14 +1,22 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.novoda:bintray-release:0.3.4'
+    }
+}
+
 apply plugin: 'com.android.library'
+apply plugin: 'com.novoda.bintray-release'
 
 android {
     compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    buildToolsVersion '22.0.1'
 
     defaultConfig {
         minSdkVersion 7
         targetSdkVersion 22
-        versionCode 1
-        versionName "1.0"
     }
     buildTypes {
         release {
@@ -19,4 +27,14 @@ android {
 
 dependencies {
     provided 'com.android.support:recyclerview-v7:22.1.1'
+}
+
+publish {
+    groupId = 'net.ypresto.recyclerview.absolutelayoutmanager'
+    artifactId = 'absolutelayoutmanager'
+    version = '0.1.0-SNAPSHOT'
+    licences = ['Apache-2.0']
+    website = 'https://github.com/ypresto/RecyclerView-AbsoluteLayoutManager'
+    autoPublish = false
+    dryRun = false
 }
