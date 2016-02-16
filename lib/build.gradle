@@ -32,7 +32,7 @@ dependencies {
 publish {
     groupId = 'net.ypresto.recyclerview.absolutelayoutmanager'
     artifactId = 'absolutelayoutmanager'
-    version = '0.1.0-SNAPSHOT'
+    version = '0.1.1-SNAPSHOT'
     licences = ['Apache-2.0']
     website = 'https://github.com/ypresto/RecyclerView-AbsoluteLayoutManager'
     autoPublish = false
