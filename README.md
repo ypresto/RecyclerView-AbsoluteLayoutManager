@@ -3,6 +3,8 @@ RecyclerView-AbsoluteLayoutManager
 
 Implement RecyclerView custom layout as easy as UICollectionViewLayout.
 
+![example.gif](https://cloud.githubusercontent.com/assets/400558/13219481/a4a7a436-d9b3-11e5-910c-e13e57979ec9.gif)
+
 
 Why
 ----
