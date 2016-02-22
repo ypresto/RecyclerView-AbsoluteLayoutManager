@@ -26,6 +26,8 @@ import android.view.View;
 
 import net.ypresto.recyclerview.absolutelayoutmanager.AbsoluteLayoutManager;
 
+import java.lang.reflect.Field;
+
 public class MainActivity extends AppCompatActivity {
     private SampleAdapter mAdapter;
 
@@ -48,7 +50,23 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         mAdapter = new SampleAdapter();
         recyclerView.setAdapter(mAdapter);
-        recyclerView.setLayoutManager(new AbsoluteLayoutManager(new SquareVerticalLayoutProvider()));
+        AbsoluteLayoutManager layoutManager = new AbsoluteLayoutManager(new SquareVerticalLayoutProvider());
+        setDebugFlag(layoutManager);
+        recyclerView.setLayoutManager(layoutManager);
+    }
+
+    @SuppressWarnings("TryWithIdenticalCatches") // As it requires API >= 17 for reflection classes.
+    private void setDebugFlag(AbsoluteLayoutManager layoutManager) {
+        Field debugFlag;
+        try {
+            debugFlag = AbsoluteLayoutManager.class.getDeclaredField("DEBUG");
+            debugFlag.setAccessible(true);
+            debugFlag.setBoolean(layoutManager, true);
+        } catch (NoSuchFieldException e) {
+            throw new AssertionError(e);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     @Override
