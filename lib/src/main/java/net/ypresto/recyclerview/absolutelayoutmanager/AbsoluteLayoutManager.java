@@ -187,11 +187,11 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
         List<LayoutProvider.LayoutAttribute> layoutAttributes = mLayoutProvider.getLayoutAttributesInRect(rectToFill);
         for (LayoutProvider.LayoutAttribute layoutAttribute : layoutAttributes) {
-            View childView = recycler.getViewForPosition(layoutAttribute.mPosition);
-            addView(childView);
             if (rectToExclude != null && layoutAttribute.isIntersectWithRect(rectToExclude)) {
                 continue;
             }
+            View childView = recycler.getViewForPosition(layoutAttribute.mPosition);
+            addView(childView);
             Rect rect = layoutAttribute.copyRect();
             offsetLayoutAttributeRectToChildViewRect(rect);
             // TODO: decoration margins
