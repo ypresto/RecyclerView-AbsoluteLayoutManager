@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mAdapter.setCount(mAdapter.getCount() + 1);
+                mAdapter.setItemCount(mAdapter.getItemCount() + 1);
                 mAdapter.notifyDataSetChanged();
             }
         });

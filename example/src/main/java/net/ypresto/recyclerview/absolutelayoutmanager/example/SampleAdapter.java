@@ -19,9 +19,11 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 public class SampleAdapter extends RecyclerView.Adapter<SampleAdapter.SampleViewHolder> {
-    private int mCount = 3;
+    private int mItemCount = 3;
+    private int mBindId = 0;
 
     @Override
     public SampleViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -33,37 +35,38 @@ public class SampleAdapter extends RecyclerView.Adapter<SampleAdapter.SampleView
     public void onBindViewHolder(SampleViewHolder holder, int position) {
         int color = getColorForPosition(position);
         holder.itemView.setBackgroundColor(color);
+        holder.textView.setText("Cell: " + position + ", Bind Id: " + mBindId);
+        mBindId += 1;
     }
 
     private int getColorForPosition(int position) {
         switch (position % 3) {
             case 0:
-                return 0xffff0000; // red
+                return 0x99ff0000; // red
             case 1:
-                return 0xff00ff00; // green
+                return 0x9900ff00; // green
             case 2:
-                return 0xff0000ff; // blue
+                return 0x990000ff; // blue
             default:
-                return 0xffffffff; // white
+                return 0x99ffffff; // white
         }
     }
 
     @Override
     public int getItemCount() {
-        return mCount;
+        return mItemCount;
     }
 
-    public int getCount() {
-        return mCount;
-    }
-
-    public void setCount(int count) {
-        mCount = count;
+    public void setItemCount(int itemCount) {
+        mItemCount = itemCount;
     }
 
     public static class SampleViewHolder extends RecyclerView.ViewHolder {
+        public final TextView textView;
+
         public SampleViewHolder(View itemView) {
             super(itemView);
+            textView = (TextView) itemView.findViewById(R.id.text);
         }
     }
 }
