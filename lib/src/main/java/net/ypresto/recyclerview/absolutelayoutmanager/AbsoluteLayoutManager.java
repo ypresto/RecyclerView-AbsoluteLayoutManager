@@ -61,25 +61,24 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     /**
-     * Absolute rect with offset of current scroll position. It doesn't includes padding.
+     * Absolute rect with offset of current scroll position. It contains padding area.
      */
     private Rect getCurrentScrollOffsetRect() {
-        return createRect(mCurrentScrollOffset.x, mCurrentScrollOffset.y, getWidth(), getHeight());
+        return createRect(mCurrentScrollOffset.x - getPaddingLeft(), mCurrentScrollOffset.y - getPaddingTop(), getWidth(), getHeight());
     }
 
     @Override
     public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
         int actualDx;
-        Rect currentScrollOffsetRect = getCurrentScrollOffsetRect();
         if (dx > 0) {
-            int remainingX = getScrollableWidth() - currentScrollOffsetRect.right;
+            int remainingX = getScrollableWidth() - getWidth() - mCurrentScrollOffset.x;
             actualDx = Math.min(dx, remainingX);
         } else {
-            int remainingX = currentScrollOffsetRect.left;
-            actualDx = -Math.min(-dx, remainingX);
+            actualDx = -Math.min(-dx, mCurrentScrollOffset.x);
         }
         mCurrentScrollOffset.offset(actualDx, 0);
         offsetChildrenHorizontal(-actualDx);
+        Rect currentScrollOffsetRect = getCurrentScrollOffsetRect();
         fillCurrentScrollRect(currentScrollOffsetRect, dx < 0 ? Direction.LEFT : Direction.RIGHT, recycler);
         return actualDx;
     }
@@ -87,16 +86,15 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     @Override
     public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state) {
         int actualDy;
-        Rect currentScrollFrameRect = getCurrentScrollOffsetRect();
         if (dy > 0) {
-            int remainingY = getScrollableHeight() - currentScrollFrameRect.bottom;
+            int remainingY = getScrollableHeight() - getHeight() - mCurrentScrollOffset.y;
             actualDy = Math.min(dy, remainingY);
         } else {
-            int remainingY = currentScrollFrameRect.top;
-            actualDy = -Math.min(-dy, remainingY);
+            actualDy = -Math.min(-dy, mCurrentScrollOffset.y);
         }
         mCurrentScrollOffset.offset(0, actualDy);
         offsetChildrenVertical(-actualDy);
+        Rect currentScrollFrameRect = getCurrentScrollOffsetRect();
         fillCurrentScrollRect(currentScrollFrameRect, dy < 0 ? Direction.TOP : Direction.BOTTOM, recycler);
         return actualDy;
     }
