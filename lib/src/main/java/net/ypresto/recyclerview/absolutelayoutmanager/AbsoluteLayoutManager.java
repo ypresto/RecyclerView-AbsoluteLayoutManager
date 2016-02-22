@@ -72,7 +72,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         int actualDx;
         Rect currentScrollOffsetRect = getCurrentScrollOffsetRect();
         if (dx > 0) {
-            int remainingX = mScrollContentWidth - currentScrollOffsetRect.right;
+            int remainingX = getScrollableWidth() - currentScrollOffsetRect.right;
             actualDx = Math.min(dx, remainingX);
         } else {
             int remainingX = currentScrollOffsetRect.left;
@@ -89,7 +89,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         int actualDy;
         Rect currentScrollFrameRect = getCurrentScrollOffsetRect();
         if (dy > 0) {
-            int remainingY = mScrollContentHeight - currentScrollFrameRect.bottom;
+            int remainingY = getScrollableHeight() - currentScrollFrameRect.bottom;
             actualDy = Math.min(dy, remainingY);
         } else {
             int remainingY = currentScrollFrameRect.top;
@@ -261,14 +261,20 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
      * Limit scroll offset to possible value according to current layout.
      */
     private void normalizeCurrentScrollOffset() {
-        int paddedScrollWidth = mScrollContentWidth + getPaddingLeft() + getPaddingRight();
-        int paddedScrollHeight = mScrollContentHeight + getPaddingTop() + getPaddingBottom();
-        int x = Math.max(0, Math.min(paddedScrollWidth - getWidth(), mCurrentScrollOffset.x));
-        int y = Math.max(0, Math.min(paddedScrollHeight - getHeight(), mCurrentScrollOffset.y));
+        int x = Math.max(0, Math.min(getScrollableWidth() - getWidth(), mCurrentScrollOffset.x));
+        int y = Math.max(0, Math.min(getScrollableHeight() - getHeight(), mCurrentScrollOffset.y));
         mCurrentScrollOffset.set(x, y);
         if (DEBUG) {
             Log.v(TAG, "normalized scroll offset: " + mCurrentScrollOffset);
         }
+    }
+
+    private int getScrollableHeight() {
+        return mScrollContentHeight + getPaddingTop() + getPaddingBottom();
+    }
+
+    private int getScrollableWidth() {
+        return mScrollContentWidth + getPaddingLeft() + getPaddingRight();
     }
 
     /**
@@ -429,12 +435,12 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public int computeHorizontalScrollRange(RecyclerView.State state) {
-        return mScrollContentWidth + getPaddingLeft() + getPaddingRight();
+        return getScrollableWidth();
     }
 
     @Override
     public int computeVerticalScrollRange(RecyclerView.State state) {
-        return mScrollContentHeight + getPaddingTop() + getPaddingBottom();
+        return getScrollableHeight();
     }
 
     @Override
