@@ -24,15 +24,18 @@ import java.util.List;
 
 public class SquareVerticalLayoutProvider extends AbsoluteLayoutManager.LayoutProvider {
     List<LayoutAttribute> mLayoutAttributes;
+    private int mCellHeight;
 
     @Override
     public void prepareLayout() {
         int itemCount = getItemCount();
         mLayoutAttributes = new ArrayList<>(itemCount);
-        int height = getLayoutSpaceWidth();
+        mCellHeight = (int) Math.round(getLayoutSpaceWidth() / 2.0);
         for (int i = 0; i < itemCount; i++) {
-            int offsetY = height * i;
-            mLayoutAttributes.add(new LayoutAttribute(i, new Rect(0, offsetY, getLayoutSpaceWidth(), offsetY + height)));
+            boolean right = i % 2 != 0;
+            int offsetX = right ? mCellHeight : 0;
+            int offsetY = mCellHeight * i;
+            mLayoutAttributes.add(new LayoutAttribute(i, new Rect(offsetX, offsetY, right ? getLayoutSpaceWidth() : mCellHeight, offsetY + mCellHeight)));
         }
     }
 
@@ -43,7 +46,7 @@ public class SquareVerticalLayoutProvider extends AbsoluteLayoutManager.LayoutPr
 
     @Override
     public int getScrollContentHeight() {
-        return getLayoutSpaceWidth() * getItemCount();
+        return mCellHeight * getItemCount();
     }
 
     @Override
