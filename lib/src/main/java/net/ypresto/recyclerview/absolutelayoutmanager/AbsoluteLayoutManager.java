@@ -61,9 +61,9 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     /**
-     * Absolute rect with offset of current scroll position. It contains padding area.
+     * Get visible rect of layout provider coordinate. Returned rect contains padding area.
      */
-    private Rect getCurrentScrollOffsetRect() {
+    private Rect getVisibleRect() {
         return createRect(mCurrentScrollOffset.x - getPaddingLeft(), mCurrentScrollOffset.y - getPaddingTop(), getWidth(), getHeight());
     }
 
@@ -78,8 +78,8 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
         mCurrentScrollOffset.offset(actualDx, 0);
         offsetChildrenHorizontal(-actualDx);
-        Rect currentScrollOffsetRect = getCurrentScrollOffsetRect();
-        fillCurrentScrollRect(currentScrollOffsetRect, dx < 0 ? Direction.LEFT : Direction.RIGHT, recycler);
+        Rect currentScrollOffsetRect = getVisibleRect();
+        fillRect(currentScrollOffsetRect, dx < 0 ? Direction.LEFT : Direction.RIGHT, recycler);
         return actualDx;
     }
 
@@ -94,26 +94,26 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
         mCurrentScrollOffset.offset(0, actualDy);
         offsetChildrenVertical(-actualDy);
-        Rect currentScrollFrameRect = getCurrentScrollOffsetRect();
-        fillCurrentScrollRect(currentScrollFrameRect, dy < 0 ? Direction.TOP : Direction.BOTTOM, recycler);
+        Rect currentScrollFrameRect = getVisibleRect();
+        fillRect(currentScrollFrameRect, dy < 0 ? Direction.TOP : Direction.BOTTOM, recycler);
         return actualDy;
     }
 
     /**
      * Fills child views around current scroll rect.
      *
-     * @param currentScrollRect Current scroll rect by {@link #getCurrentScrollOffsetRect()}.
-     * @param scrollDirection   Fills views by extending current filled rect to specified direction if possible.
-     *                          Fills whole rect if {@code null} is passed or rect could not be extended.
-     * @param recycler          Recycler for creating and recycling views.
+     * @param visibleRect     Current visible rect by {@link #getVisibleRect()}.
+     * @param scrollDirection Fills views by extending current filled rect to specified direction if possible.
+     *                        Fills whole rect if {@code null} is passed or rect could not be extended.
+     * @param recycler        Recycler for creating and recycling views.
      */
-    private void fillCurrentScrollRect(Rect currentScrollRect, Direction scrollDirection, RecyclerView.Recycler recycler) {
-        Rect minimumRectToFill = getExtendedRectWithScaleFactor(currentScrollRect, MINIMUM_FILL_SCALE_FACTOR);
+    private void fillRect(Rect visibleRect, Direction scrollDirection, RecyclerView.Recycler recycler) {
+        Rect minimumRectToFill = getExtendedRectWithScaleFactor(visibleRect, MINIMUM_FILL_SCALE_FACTOR);
         if (mFilledRect.contains(minimumRectToFill)) {
             return;
         }
 
-        Rect maximumRectToFill = getExtendedRectWithScaleFactor(currentScrollRect, MAXIMUM_FILL_SCALE_FACTOR);
+        Rect maximumRectToFill = getExtendedRectWithScaleFactor(visibleRect, MAXIMUM_FILL_SCALE_FACTOR);
         Rect rectToFill = maximumRectToFill;
         Rect newFilledRect = rectToFill;
         boolean isIncrementalFill = false;
@@ -131,14 +131,17 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
                     throw new IllegalStateException("Unexpected non-intersect rect while calculating filled rect.");
                 }
                 newFilledRect = incrementallyFilledRect;
+                if (DEBUG) {
+                    Log.v(TAG, "Incrementally filling rect: " + newFilledRect);
+                }
             }
         }
         if (isIncrementalFill) {
             removeChildViewsOutsideOfScrollRect(newFilledRect, recycler); // recycle first
-            fillChildViewsInScrollRect(rectToFill, mFilledRect, recycler); // fill views only not previously placed
+            fillChildViewsInRect(rectToFill, mFilledRect, recycler); // fill views only not previously placed
         } else {
             detachAndScrapAttachedViews(recycler); // detach all views and fill entire rect
-            fillChildViewsInScrollRect(rectToFill, null, recycler);
+            fillChildViewsInRect(rectToFill, null, recycler);
         }
         mFilledRect = newFilledRect;
     }
@@ -178,22 +181,19 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         return createRect(x, y, rect.width() + deltaWidth, rect.height() + deltaHeight);
     }
 
-    private void fillChildViewsInScrollRect(Rect scrollRect, Rect excludeScrollRect, RecyclerView.Recycler recycler) {
-        Rect layoutAttributeRect = new Rect(scrollRect);
+    private void fillChildViewsInRect(Rect rectToFill, Rect rectToExclude, RecyclerView.Recycler recycler) {
         if (DEBUG) {
-            Log.v(TAG, "filling for layout manager rect: " + scrollRect + ", layout provider rect: " + layoutAttributeRect);
+            Log.v(TAG, "filling for rect: " + rectToFill);
         }
-        offsetScrollRectToLayoutAttributeRect(layoutAttributeRect);
-        List<LayoutProvider.LayoutAttribute> layoutAttributes = mLayoutProvider.getLayoutAttributesInRect(layoutAttributeRect);
+        List<LayoutProvider.LayoutAttribute> layoutAttributes = mLayoutProvider.getLayoutAttributesInRect(rectToFill);
         for (LayoutProvider.LayoutAttribute layoutAttribute : layoutAttributes) {
             View childView = recycler.getViewForPosition(layoutAttribute.mPosition);
             addView(childView);
-            Rect rect = layoutAttribute.copyRect();
-            offsetLayoutAttributeRectToScrollRect(rect);
-            if (excludeScrollRect != null && checkIfRectsIntersect(rect, excludeScrollRect)) {
+            if (rectToExclude != null && layoutAttribute.isIntersectWithRect(rectToExclude)) {
                 continue;
             }
-            offsetScrollRectToChildViewRect(rect);
+            Rect rect = layoutAttribute.copyRect();
+            offsetLayoutAttributeRectToChildViewRect(rect);
             // TODO: decoration margins
             childView.measure(View.MeasureSpec.makeMeasureSpec(rect.width(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(rect.height(), View.MeasureSpec.EXACTLY));
             layoutDecorated(childView, rect.left, rect.top, rect.right, rect.bottom);
@@ -209,7 +209,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
     private void removeChildViewsOutsideOfScrollRect(Rect scrollRect, RecyclerView.Recycler recycler) {
         Rect retainChildViewRect = new Rect(scrollRect);
-        offsetScrollRectToChildViewRect(retainChildViewRect);
+        offsetLayoutAttributeRectToChildViewRect(retainChildViewRect);
 
         int childCount = getChildCount();
         Rect viewRect = new Rect();
@@ -226,7 +226,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
     private void detachAndScrapChildViewsInScrollRect(Rect scrollRect, RecyclerView.Recycler recycler) {
         Rect retainChildViewRect = new Rect(scrollRect);
-        offsetScrollRectToChildViewRect(retainChildViewRect);
+        offsetLayoutAttributeRectToChildViewRect(retainChildViewRect);
 
         int childCount = getChildCount();
         Rect viewRect = new Rect();
@@ -252,7 +252,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             mPendingScrollPosition = NO_POSITION;
         }
         normalizeCurrentScrollOffset();
-        fillCurrentScrollRect(getCurrentScrollOffsetRect(), null, recycler);
+        fillRect(getVisibleRect(), null, recycler);
     }
 
     /**
@@ -276,45 +276,19 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     /**
-     * Convert coordinate of rect from layout manager to {@link LayoutProvider}.
+     * Convert coordinate of rect from layout provider to child view position.
      */
-    private void offsetScrollRectToLayoutAttributeRect(Rect rect) {
-        rect.offset(-getPaddingLeft(), -getPaddingTop());
-    }
-
-    /**
-     * Convert coordinate of rect from {@link LayoutAttribute} to layout manager.
-     */
-    private void offsetLayoutAttributeRectToScrollRect(Rect rect) {
-        rect.offset(getPaddingLeft(), getPaddingTop());
-    }
-
-    /**
-     * Convert coordinate of point from {@link LayoutAttribute} to layout manager.
-     */
-    private void offsetLayoutAttributePointToScrollPoint(Point point) {
-        point.offset(getPaddingLeft(), getPaddingTop());
-    }
-
-    /**
-     * Convert coordinate of rect from layout manager to child view position.
-     */
-    private void offsetScrollRectToChildViewRect(Rect rect) {
-        rect.offset(-mCurrentScrollOffset.x, -mCurrentScrollOffset.y);
+    private void offsetLayoutAttributeRectToChildViewRect(Rect rect) {
+        rect.offset(-mCurrentScrollOffset.x + getPaddingLeft(), -mCurrentScrollOffset.y + getPaddingTop());
     }
 
     private Point calculateScrollOffsetToShowPositionIfPossible(int position) {
         if (position >= getItemCount()) return null;
         LayoutProvider.LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(position);
-        return calculateScrollOffsetToShowItem(layoutAttribute, getCurrentScrollOffsetRect());
+        return calculateScrollOffsetToShowItem(layoutAttribute, getVisibleRect());
     }
 
-    private Point calculateScrollOffsetToShowItem(LayoutProvider.LayoutAttribute layoutAttribute, Rect fromScrollRect) {
-        // Calculate in layout attributes coordinate to exclude padding.
-
-        //noinspection UnnecessaryLocalVariable
-        Rect fromRect = fromScrollRect;
-        offsetScrollRectToLayoutAttributeRect(fromRect);
+    private Point calculateScrollOffsetToShowItem(LayoutProvider.LayoutAttribute layoutAttribute, Rect fromRect) {
         Rect itemRect = layoutAttribute.copyRect();
         Point layoutAttributesScrollOffset = new Point(fromRect.left, fromRect.top); // defaults to current position
         if (itemRect.left < fromRect.left) {
@@ -328,10 +302,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             layoutAttributesScrollOffset.y = itemRect.bottom - fromRect.height();
         }
 
-        // Then restore to layout manager coordinate.
-        Point scrollOffset = new Point(layoutAttributesScrollOffset);
-        offsetLayoutAttributePointToScrollPoint(scrollOffset);
-        return scrollOffset;
+        return layoutAttributesScrollOffset;
     }
 
     private int getLayoutSpaceWidth() {
