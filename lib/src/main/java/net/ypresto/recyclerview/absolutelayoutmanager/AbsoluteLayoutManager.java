@@ -252,6 +252,8 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             mPendingScrollPosition = NO_POSITION;
         }
         normalizeCurrentScrollOffset();
+        detachAndScrapAttachedViews(recycler);
+        mFilledRect.setEmpty();
         fillRect(getVisibleRect(), null, recycler);
     }
 
