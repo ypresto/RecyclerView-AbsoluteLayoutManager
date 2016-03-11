@@ -224,23 +224,6 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
     }
 
-    private void detachAndScrapChildViewsInScrollRect(Rect scrollRect, RecyclerView.Recycler recycler) {
-        Rect retainChildViewRect = new Rect(scrollRect);
-        offsetLayoutAttributeRectToChildViewRect(retainChildViewRect);
-
-        int childCount = getChildCount();
-        Rect viewRect = new Rect();
-        int removed = 0;
-        for (int i = 0; i < childCount; i++) {
-            View childView = getChildAt(i - removed);
-            updateRectWithView(viewRect, childView);
-            if (checkIfRectsIntersect(retainChildViewRect, viewRect)) {
-                detachAndScrapView(childView, recycler);
-                removed++;
-            }
-        }
-    }
-
     @Override
     public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
         prepareLayoutProvider(state);
