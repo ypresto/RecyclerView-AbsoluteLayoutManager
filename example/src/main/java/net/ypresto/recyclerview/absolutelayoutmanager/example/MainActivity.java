@@ -29,6 +29,7 @@ import net.ypresto.recyclerview.absolutelayoutmanager.AbsoluteLayoutManager;
 import java.lang.reflect.Field;
 
 public class MainActivity extends AppCompatActivity {
+    public static final String STATE_ITEM_COUNT = "itemCount";
     private SampleAdapter mAdapter;
 
     @Override
@@ -49,10 +50,19 @@ public class MainActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         mAdapter = new SampleAdapter();
+        if (savedInstanceState != null) {
+            mAdapter.setItemCount(savedInstanceState.getInt(STATE_ITEM_COUNT));
+        }
         recyclerView.setAdapter(mAdapter);
         AbsoluteLayoutManager layoutManager = new AbsoluteLayoutManager(new SquareVerticalLayoutProvider());
         setDebugFlag(layoutManager);
         recyclerView.setLayoutManager(layoutManager);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(STATE_ITEM_COUNT, mAdapter.getItemCount());
     }
 
     @SuppressWarnings("TryWithIdenticalCatches") // As it requires API >= 17 for reflection classes.
