@@ -308,15 +308,17 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         if (state.didStructureChange()) {
             mIsLayoutProviderDirty = true;
         }
-        if (mLayoutProvider.mLayoutSpaceWidth != getLayoutSpaceWidth() || mLayoutProvider.mLayoutSpaceHeight != getLayoutSpaceHeight()) {
+        if (mLayoutProvider.mLayoutManagerState.mLayoutSpaceWidth != getLayoutSpaceWidth() ||
+                mLayoutProvider.mLayoutManagerState.mLayoutSpaceHeight != getLayoutSpaceHeight()) {
             mIsLayoutProviderDirty = true;
         }
 
         if (!mIsLayoutProviderDirty) return;
         mFilledRect = new Rect(); // invalidate cache
-        mLayoutProvider.mLayoutSpaceWidth = getLayoutSpaceWidth();
-        mLayoutProvider.mLayoutSpaceHeight = getLayoutSpaceHeight();
-        mLayoutProvider.mItemCount = getItemCount();
+        mLayoutProvider.mLayoutManagerState = new LayoutProvider.LayoutManagerState(
+                getLayoutSpaceWidth(),
+                getLayoutSpaceHeight(),
+                getItemCount());
         mLayoutProvider.prepareLayout();
         mScrollContentWidth = mLayoutProvider.getScrollContentWidth();
         mScrollContentHeight = mLayoutProvider.getScrollContentHeight();
@@ -443,20 +445,37 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     public abstract static class LayoutProvider {
-        private int mLayoutSpaceWidth;
-        private int mLayoutSpaceHeight;
-        private int mItemCount;
+        private LayoutManagerState mLayoutManagerState = new LayoutManagerState();
 
+        /**
+         * @deprecated Use {@link #getState()}.
+         */
+        @Deprecated
         public int getLayoutSpaceWidth() {
-            return mLayoutSpaceWidth;
+            return mLayoutManagerState.getLayoutSpaceWidth();
         }
 
+        /**
+         * @deprecated Use {@link #getState()}.
+         */
+        @Deprecated
         public int getLayoutSpaceHeight() {
-            return mLayoutSpaceHeight;
+            return mLayoutManagerState.getLayoutSpaceHeight();
         }
 
+        /**
+         * @deprecated Use {@link #getState()}.
+         */
+        @Deprecated
         public int getItemCount() {
-            return mItemCount;
+            return mLayoutManagerState.getItemCount();
+        }
+
+        /**
+         * Returns current state of layout manager, including size of layout space and item count.
+         */
+        public final LayoutManagerState getState() {
+            return mLayoutManagerState;
         }
 
         public abstract void prepareLayout();
@@ -468,6 +487,36 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         public abstract List<LayoutAttribute> getLayoutAttributesInRect(Rect rect);
 
         public abstract LayoutAttribute getLayoutAttributeForItemAtPosition(int position);
+
+        public static class LayoutManagerState {
+            private final int mLayoutSpaceWidth;
+            private final int mLayoutSpaceHeight;
+            private final int mItemCount;
+
+            private LayoutManagerState(int layoutSpaceWidth, int layoutSpaceHeight, int itemCount) {
+                mLayoutSpaceWidth = layoutSpaceWidth;
+                mLayoutSpaceHeight = layoutSpaceHeight;
+                mItemCount = itemCount;
+            }
+
+            private LayoutManagerState() {
+                mLayoutSpaceWidth = 0;
+                mLayoutSpaceHeight = 0;
+                mItemCount = 0;
+            }
+
+            public int getLayoutSpaceWidth() {
+                return mLayoutSpaceWidth;
+            }
+
+            public int getLayoutSpaceHeight() {
+                return mLayoutSpaceHeight;
+            }
+
+            public int getItemCount() {
+                return mItemCount;
+            }
+        }
 
         public static class LayoutAttribute {
             private final int mPosition;

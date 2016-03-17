@@ -28,25 +28,25 @@ public class SquareVerticalLayoutProvider extends AbsoluteLayoutManager.LayoutPr
 
     @Override
     public void prepareLayout() {
-        int itemCount = getItemCount();
+        int itemCount = getState().getItemCount();
         mLayoutAttributes = new ArrayList<>(itemCount);
-        mCellHeight = (int) Math.round(getLayoutSpaceWidth() / 2.0);
+        mCellHeight = (int) Math.round(getState().getLayoutSpaceWidth() / 2.0);
         for (int i = 0; i < itemCount; i++) {
             boolean right = i % 2 != 0;
             int offsetX = right ? mCellHeight : 0;
             int offsetY = mCellHeight * i;
-            mLayoutAttributes.add(new LayoutAttribute(i, new Rect(offsetX, offsetY, right ? getLayoutSpaceWidth() : mCellHeight, offsetY + mCellHeight)));
+            mLayoutAttributes.add(new LayoutAttribute(i, new Rect(offsetX, offsetY, right ? getState().getLayoutSpaceWidth() : mCellHeight, offsetY + mCellHeight)));
         }
     }
 
     @Override
     public int getScrollContentWidth() {
-        return getLayoutSpaceWidth();
+        return getState().getLayoutSpaceWidth();
     }
 
     @Override
     public int getScrollContentHeight() {
-        return mCellHeight * getItemCount();
+        return mCellHeight * getState().getItemCount();
     }
 
     @Override
