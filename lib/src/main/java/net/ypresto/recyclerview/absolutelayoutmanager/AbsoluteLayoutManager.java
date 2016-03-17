@@ -34,12 +34,14 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     private static final float MINIMUM_FILL_SCALE_FACTOR = 0.0f;
     private static final float MAXIMUM_FILL_SCALE_FACTOR = 0.33f; // MAX_SCROLL_FACTOR of LinearLayoutManager
     private static final int NO_POSITION = RecyclerView.NO_POSITION;
-    private static final String STATE_SCROLL_OFFSET = "scrollOffset";
+    // NOTE: Point as Parcelable is only on API >= 13.
+    private static final String STATE_SCROLL_OFFSET_X = "scrollOffsetX";
+    private static final String STATE_SCROLL_OFFSET_Y = "scrollOffsetY";
     private static boolean DEBUG = false;
 
     private final LayoutProvider mLayoutProvider;
     private boolean mIsLayoutProviderDirty;
-    private Point mCurrentScrollOffset = new Point(0, 0);
+    private final Point mCurrentScrollOffset = new Point(0, 0);
     // NOTE: Size class is only on API >= 22.
     private int mScrollContentWidth = 0;
     private int mScrollContentHeight = 0;
@@ -230,7 +232,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         if (mPendingScrollPosition != NO_POSITION) {
             Point scrollOffset = calculateScrollOffsetToShowPositionIfPossible(mPendingScrollPosition);
             if (scrollOffset != null) {
-                mCurrentScrollOffset = scrollOffset;
+                mCurrentScrollOffset.set(scrollOffset.x, scrollOffset.y);
             }
             mPendingScrollPosition = NO_POSITION;
         }
@@ -326,12 +328,14 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         Bundle state = new Bundle();
         Point scrollOffset = mCurrentScrollOffset;
         if (mPendingScrollPosition != NO_POSITION) {
+            // TODO: Scroll offset for the position may be changed after restoration.
             Point pendingScrollOffset = calculateScrollOffsetToShowPositionIfPossible(mPendingScrollPosition);
             if (pendingScrollOffset != null) {
                 scrollOffset = pendingScrollOffset;
             }
         }
-        state.putParcelable(STATE_SCROLL_OFFSET, scrollOffset);
+        state.putInt(STATE_SCROLL_OFFSET_X, scrollOffset.x);
+        state.putInt(STATE_SCROLL_OFFSET_Y, scrollOffset.y);
         return state;
     }
 
@@ -342,12 +346,13 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             return;
         }
         Bundle bundle = (Bundle) state;
-        Point scrollOffset = bundle.getParcelable(STATE_SCROLL_OFFSET);
-        if (scrollOffset == null) {
-            Log.e(TAG, "Invalid state object is passed, value not found for " + STATE_SCROLL_OFFSET);
+        if (!(bundle.containsKey(STATE_SCROLL_OFFSET_X) && bundle.containsKey(STATE_SCROLL_OFFSET_Y))) {
+            Log.e(TAG, "Invalid state object is passed, keys " + STATE_SCROLL_OFFSET_X + " and " + STATE_SCROLL_OFFSET_Y + " is required.");
             return;
         }
-        mCurrentScrollOffset = scrollOffset;
+        int scrollOffsetX = bundle.getInt(STATE_SCROLL_OFFSET_X);
+        int scrollOffsetY = bundle.getInt(STATE_SCROLL_OFFSET_Y);
+        mCurrentScrollOffset.set(scrollOffsetX, scrollOffsetY);
         requestLayout();
     }
 
