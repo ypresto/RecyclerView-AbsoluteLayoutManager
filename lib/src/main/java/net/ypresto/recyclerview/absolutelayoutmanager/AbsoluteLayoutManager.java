@@ -80,8 +80,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
         mCurrentScrollOffset.offset(actualDx, 0);
         offsetChildrenHorizontal(-actualDx);
-        Rect currentScrollOffsetRect = getVisibleRect();
-        fillRect(currentScrollOffsetRect, dx < 0 ? Direction.LEFT : Direction.RIGHT, recycler);
+        fillRect(getVisibleRect(), dx < 0 ? Direction.LEFT : Direction.RIGHT, recycler);
         return actualDx;
     }
 
@@ -96,8 +95,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
         mCurrentScrollOffset.offset(0, actualDy);
         offsetChildrenVertical(-actualDy);
-        Rect currentScrollFrameRect = getVisibleRect();
-        fillRect(currentScrollFrameRect, dy < 0 ? Direction.TOP : Direction.BOTTOM, recycler);
+        fillRect(getVisibleRect(), dy < 0 ? Direction.TOP : Direction.BOTTOM, recycler);
         return actualDy;
     }
 
@@ -272,7 +270,8 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     private Point calculateScrollOffsetToShowPositionIfPossible(int position) {
         if (position >= getItemCount()) return null;
         LayoutProvider.LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(position);
-        return calculateScrollOffsetToShowItem(layoutAttribute, getVisibleRect());
+        Rect currentLayoutSpaceRect = createRect(mCurrentScrollOffset.x, mCurrentScrollOffset.y, getLayoutSpaceWidth(), getLayoutSpaceHeight());
+        return calculateScrollOffsetToShowItem(layoutAttribute, currentLayoutSpaceRect);
     }
 
     private Point calculateScrollOffsetToShowItem(LayoutProvider.LayoutAttribute layoutAttribute, Rect fromRect) {
