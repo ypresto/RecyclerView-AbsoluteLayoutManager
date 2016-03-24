@@ -29,6 +29,7 @@ import android.view.ViewGroup;
 import java.util.List;
 
 // TODO: predictive item animations
+// TODO: Improve smooth scroll layouting. Refer LinearLayoutManager#getExtraLayoutSpace(RecyclerView.State state).
 public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     private static final String TAG = "AbsoluteLayoutManager";
     private static final float MINIMUM_FILL_SCALE_FACTOR = 0.0f;
@@ -142,6 +143,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         } else {
             detachAndScrapAttachedViews(recycler); // detach all views and fill entire rect
             fillChildViewsInRect(rectToFill, null, recycler);
+            removeChildViewsOutsideOfScrollRect(newFilledRect, recycler); // remove all views which are invisible.
         }
         mFilledRect = newFilledRect;
     }
