@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">AbsoluteLayoutManagerExample</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_scroll_to_bottom_minus_1">Scroll To (Bottom - 1)</string>
 </resources>
