@@ -141,9 +141,12 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             removeChildViewsOutsideOfScrollRect(newFilledRect, recycler); // recycle first
             fillChildViewsInRect(rectToFill, mFilledRect, recycler); // fill views only not previously placed
         } else {
-            detachAndScrapAttachedViews(recycler); // detach all views and fill entire rect
+            // Detach all views and fill entire rect
+            detachAndScrapAttachedViews(recycler);
             fillChildViewsInRect(rectToFill, null, recycler);
-            removeChildViewsOutsideOfScrollRect(newFilledRect, recycler); // remove all views which are invisible.
+            // Then remove all scrapped views from parent which aren't reused by fill.
+            // Scrapped views are still attached to parent recycler view, refer javadoc of Recycler.
+            removeScrappedViews(recycler);
         }
         mFilledRect = newFilledRect;
     }
@@ -210,8 +213,8 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     private void removeChildViewsOutsideOfScrollRect(Rect scrollRect, RecyclerView.Recycler recycler) {
-        Rect retainChildViewRect = new Rect(scrollRect);
-        offsetLayoutAttributeRectToChildViewRect(retainChildViewRect);
+        Rect childViewRect = new Rect(scrollRect);
+        offsetLayoutAttributeRectToChildViewRect(childViewRect);
 
         int childCount = getChildCount();
         Rect viewRect = new Rect();
@@ -219,10 +222,16 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         for (int i = 0; i < childCount; i++) {
             View childView = getChildAt(i - removed);
             updateRectWithView(viewRect, childView);
-            if (!checkIfRectsIntersect(retainChildViewRect, viewRect)) {
+            if (!checkIfRectsIntersect(childViewRect, viewRect)) {
                 removeAndRecycleView(childView, recycler);
                 removed++;
             }
+        }
+    }
+
+    private void removeScrappedViews(RecyclerView.Recycler recycler) {
+        for (RecyclerView.ViewHolder viewHolder : recycler.getScrapList()) {
+            recycler.recycleView(viewHolder.itemView);
         }
     }
 
