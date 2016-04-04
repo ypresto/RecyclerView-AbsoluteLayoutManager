@@ -18,6 +18,7 @@ package net.ypresto.recyclerview.absolutelayoutmanager.example;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -31,6 +32,9 @@ import java.lang.reflect.Field;
 public class MainActivity extends AppCompatActivity {
     public static final String STATE_ITEM_COUNT = "itemCount";
     private SampleAdapter mAdapter;
+    private AbsoluteLayoutManager mAbsoluteLayoutManager;
+    private GridLayoutManager mGridLayoutManager;
+    private RecyclerView mRecyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,15 +52,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         mAdapter = new SampleAdapter();
         if (savedInstanceState != null) {
             mAdapter.setItemCount(savedInstanceState.getInt(STATE_ITEM_COUNT));
         }
-        recyclerView.setAdapter(mAdapter);
-        AbsoluteLayoutManager layoutManager = new AbsoluteLayoutManager(new SquareVerticalLayoutProvider());
-        setDebugFlag(layoutManager);
-        recyclerView.setLayoutManager(layoutManager);
+        mRecyclerView.setAdapter(mAdapter);
+        mAbsoluteLayoutManager = new AbsoluteLayoutManager(new SquareVerticalLayoutProvider());
+        setDebugFlag(mAbsoluteLayoutManager);
+        mRecyclerView.setLayoutManager(mAbsoluteLayoutManager);
+        mGridLayoutManager = new GridLayoutManager(this, 3);
     }
 
     @Override
@@ -93,11 +98,18 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        if (id == R.id.action_scroll_to_bottom_minus_1) {
-            ((RecyclerView) findViewById(R.id.recycler_view)).smoothScrollToPosition(mAdapter.getItemCount() - 2);
-            return true;
+        switch (id) {
+            case R.id.action_scroll_to_bottom_minus_1:
+                ((RecyclerView) findViewById(R.id.recycler_view)).smoothScrollToPosition(mAdapter.getItemCount() - 2);
+                return true;
+            case R.id.action_change_layout:
+                if (mRecyclerView.getLayoutManager() == mAbsoluteLayoutManager) {
+                    mRecyclerView.setLayoutManager(mGridLayoutManager);
+                } else {
+                    mRecyclerView.setLayoutManager(mAbsoluteLayoutManager);
+                }
+            default:
+                return super.onOptionsItemSelected(item);
         }
-
-        return super.onOptionsItemSelected(item);
     }
 }

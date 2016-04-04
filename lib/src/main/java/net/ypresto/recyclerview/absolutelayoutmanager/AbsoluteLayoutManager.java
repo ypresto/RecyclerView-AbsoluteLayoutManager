@@ -303,6 +303,15 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         return mLayoutProvider;
     }
 
+    /**
+     * Explicitly requests to call {@link LayoutProvider#prepareLayout()} on next layout cycle.
+     * Note that any changes to adapter implicitly requests {@code prepareLayout()} call.
+     */
+    public void invalidateLayout() {
+        mIsLayoutProviderDirty = true;
+        requestLayout();
+    }
+
     private void prepareLayoutProvider(RecyclerView.State state) {
         if (state.didStructureChange()) {
             mIsLayoutProviderDirty = true;
@@ -322,6 +331,18 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         mScrollContentWidth = mLayoutProvider.getScrollContentWidth();
         mScrollContentHeight = mLayoutProvider.getScrollContentHeight();
         mIsLayoutProviderDirty = false;
+    }
+
+    @Override
+    public void onAttachedToWindow(RecyclerView view) {
+        // It is happen when setLayoutManager() is called.
+        mIsLayoutProviderDirty = true;
+    }
+
+    @Override
+    public void onItemsUpdated(RecyclerView recyclerView, int positionStart, int itemCount) {
+        // It is not structure change, but we want to recalculate layout.
+        mIsLayoutProviderDirty = true;
     }
 
     @Override

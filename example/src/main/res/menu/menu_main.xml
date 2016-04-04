@@ -6,4 +6,8 @@
           android:title="@string/action_scroll_to_bottom_minus_1"
           android:orderInCategory="100"
           app:showAsAction="never"/>
+    <item android:id="@+id/action_change_layout"
+          android:title="@string/action_change_layout"
+          android:orderInCategory="100"
+          app:showAsAction="never"/>
 </menu>
