@@ -15,6 +15,7 @@
  */
 package net.ypresto.recyclerview.absolutelayoutmanager;
 
+import android.content.Context;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -30,6 +31,15 @@ import java.util.List;
 
 // TODO: predictive item animations
 public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
+    public static final int SCROLL_ALIGNMENT_NONE = 0;
+    public static final int SCROLL_ALIGNMENT_LEFT = 1 << 1;
+    public static final int SCROLL_ALIGNMENT_CENTER_HORIZONTAL = 1 << 2;
+    public static final int SCROLL_ALIGNMENT_RIGHT = 1 << 3;
+    public static final int SCROLL_ALIGNMENT_TOP = 1 << 4;
+    public static final int SCROLL_ALIGNMENT_CENTER_VERTICAL = 1 << 5;
+    public static final int SCROLL_ALIGNMENT_BOTTOM = 1 << 6;
+    public static final int SCROLL_ALIGNMENT_CENTER = SCROLL_ALIGNMENT_CENTER_HORIZONTAL | SCROLL_ALIGNMENT_CENTER_VERTICAL;
+
     private static final String TAG = "AbsoluteLayoutManager";
     private static final float MINIMUM_FILL_SCALE_FACTOR = 0.0f;
     private static final float MAXIMUM_FILL_SCALE_FACTOR = 0.33f; // MAX_SCROLL_FACTOR of LinearLayoutManager
@@ -44,6 +54,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     private int mScrollContentHeight = 0;
     private Rect mFilledRect = new Rect();
     private int mPendingScrollPosition = NO_POSITION;
+    private int mPendingScrollAlignment = SCROLL_ALIGNMENT_NONE;
     private SavedState mPendingSavedState;
 
     public AbsoluteLayoutManager(LayoutProvider layoutProvider) {
@@ -232,13 +243,13 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
 
         if (mPendingScrollPosition != NO_POSITION) {
-            Point scrollOffset = calculateScrollOffsetToShowPositionIfPossible(mPendingScrollPosition);
+            Point scrollOffset = calculateScrollOffsetToShowPositionIfPossible(mPendingScrollPosition, mPendingScrollAlignment);
             if (scrollOffset != null) {
                 mCurrentScrollOffset.set(scrollOffset.x, scrollOffset.y);
             }
             mPendingScrollPosition = NO_POSITION;
         }
-        normalizeCurrentScrollOffset();
+        normalizeScrollOffset(mCurrentScrollOffset);
         detachAndScrapAttachedViews(recycler);
         mFilledRect.setEmpty();
         fillRect(getVisibleRect(), null, recycler);
@@ -247,12 +258,12 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     /**
      * Limit scroll offset to possible value according to current layout.
      */
-    private void normalizeCurrentScrollOffset() {
-        int x = Math.max(0, Math.min(getScrollableWidth() - getWidth(), mCurrentScrollOffset.x));
-        int y = Math.max(0, Math.min(getScrollableHeight() - getHeight(), mCurrentScrollOffset.y));
-        mCurrentScrollOffset.set(x, y);
+    private void normalizeScrollOffset(Point scrollOffset) {
+        int x = Math.max(0, Math.min(getScrollableWidth() - getWidth(), scrollOffset.x));
+        int y = Math.max(0, Math.min(getScrollableHeight() - getHeight(), scrollOffset.y));
+        scrollOffset.set(x, y);
         if (DEBUG) {
-            Log.v(TAG, "normalized scroll offset: " + mCurrentScrollOffset);
+            Log.v(TAG, "normalized scroll offset: " + scrollOffset);
         }
     }
 
@@ -271,28 +282,11 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         rect.offset(-mCurrentScrollOffset.x + getPaddingLeft(), -mCurrentScrollOffset.y + getPaddingTop());
     }
 
-    private Point calculateScrollOffsetToShowPositionIfPossible(int position) {
+    private Point calculateScrollOffsetToShowPositionIfPossible(int position, int scrollAlignment) {
         if (position >= getItemCount()) return null;
         LayoutProvider.LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(position);
-        Rect currentLayoutSpaceRect = createRect(mCurrentScrollOffset.x, mCurrentScrollOffset.y, getLayoutSpaceWidth(), getLayoutSpaceHeight());
-        return calculateScrollOffsetToShowItem(layoutAttribute, currentLayoutSpaceRect);
-    }
-
-    private Point calculateScrollOffsetToShowItem(LayoutProvider.LayoutAttribute layoutAttribute, Rect fromRect) {
-        Rect itemRect = layoutAttribute.copyRect();
-        Point layoutAttributesScrollOffset = new Point(fromRect.left, fromRect.top); // defaults to current position
-        if (itemRect.left < fromRect.left) {
-            layoutAttributesScrollOffset.x = itemRect.left;
-        } else if (itemRect.right > fromRect.right) {
-            layoutAttributesScrollOffset.x = itemRect.right - fromRect.width();
-        }
-        if (itemRect.top < fromRect.top) {
-            layoutAttributesScrollOffset.y = itemRect.top;
-        } else if (itemRect.bottom > fromRect.bottom) {
-            layoutAttributesScrollOffset.y = itemRect.bottom - fromRect.height();
-        }
-
-        return layoutAttributesScrollOffset;
+        Rect layoutSpaceRect = createRect(mCurrentScrollOffset.x, mCurrentScrollOffset.y, getLayoutSpaceWidth(), getLayoutSpaceHeight());
+        return ScrollHelper.calculateScrollOffsetToShowItem(layoutAttribute, layoutSpaceRect, scrollAlignment);
     }
 
     private int getLayoutSpaceWidth() {
@@ -386,7 +380,13 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
                     + " relativeOffsetX: " + relativeOffsetX
                     + " relativeOffsetY: " + relativeOffsetY);
         }
-        return new SavedState(anchor.mLayoutAttribute.getPosition(), anchor.mCorner, relativeOffsetX, relativeOffsetY, mPendingScrollPosition);
+        return new SavedState(
+                anchor.mLayoutAttribute.getPosition(),
+                anchor.mCorner,
+                relativeOffsetX,
+                relativeOffsetY,
+                mPendingScrollPosition,
+                mPendingScrollAlignment);
     }
 
     private void restoreFromSavedState(SavedState savedState) {
@@ -458,38 +458,33 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public void scrollToPosition(int position) {
+        scrollToPositionWithAlignment(position, SCROLL_ALIGNMENT_NONE);
+    }
+
+    public void scrollToPositionWithAlignment(int position, int scrollAlignment) {
         mPendingScrollPosition = position;
+        mPendingScrollAlignment = scrollAlignment;
         requestLayout();
     }
 
     @Override
-    public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state,
-                                       int position) {
-        prepareLayoutProvider();
-        LinearSmoothScroller linearSmoothScroller =
-                new LinearSmoothScroller(recyclerView.getContext()) {
-                    @Override
-                    public PointF computeScrollVectorForPosition(int targetPosition) {
-                        Point targetScrollOffset = calculateScrollOffsetToShowPositionIfPossible(targetPosition);
-                        if (targetScrollOffset == null) return null;
-                        return calculateUnitVectorFromPoints(mCurrentScrollOffset, targetScrollOffset);
-                    }
-                };
-        linearSmoothScroller.setTargetPosition(position);
-        startSmoothScroll(linearSmoothScroller);
+    public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state, int position) {
+        smoothScrollToPositionWithAlignment(recyclerView.getContext(), position, SCROLL_ALIGNMENT_NONE);
     }
 
-    private PointF calculateUnitVectorFromPoints(Point currentScrollOffset, Point targetScrollOffset) {
-        PointF vector = new PointF();
-        vector.x = targetScrollOffset.x - currentScrollOffset.x;
-        vector.y = targetScrollOffset.y - currentScrollOffset.y;
-
-        //noinspection SuspiciousNameCombination
-        double norm = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
-        if (norm == 0.0) return vector;
-        vector.x /= norm;
-        vector.y /= norm;
-        return vector;
+    public void smoothScrollToPositionWithAlignment(Context context, int position, final int scrollAlignment) {
+        prepareLayoutProvider();
+        LinearSmoothScroller linearSmoothScroller = new CenterAwareLinearSmoothScroller(context, scrollAlignment) {
+            @Override
+            public PointF computeScrollVectorForPosition(int targetPosition) {
+                Point targetScrollOffset = calculateScrollOffsetToShowPositionIfPossible(targetPosition, scrollAlignment);
+                if (targetScrollOffset == null) return null;
+                normalizeScrollOffset(targetScrollOffset);
+                return ScrollHelper.calculateUnitVectorFromPoints(mCurrentScrollOffset, targetScrollOffset);
+            }
+        };
+        linearSmoothScroller.setTargetPosition(position);
+        startSmoothScroll(linearSmoothScroller);
     }
 
     private enum Direction {
@@ -505,17 +500,19 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         private final int mRelativeOffsetX;
         private final int mRelativeOffsetY;
         private final int mPendingScrollPosition;
+        private final int mPendingScrollAlignment;
 
         static SavedState empty() {
-            return new SavedState(NO_POSITION, null, 0, 0, NO_POSITION);
+            return new SavedState(NO_POSITION, null, 0, 0, NO_POSITION, SCROLL_ALIGNMENT_NONE);
         }
 
-        SavedState(int anchorPosition, AnchorHelper.Corner anchorCorner, int relativeOffsetX, int relativeOffsetY, int pendingScrollPosition) {
+        SavedState(int anchorPosition, AnchorHelper.Corner anchorCorner, int relativeOffsetX, int relativeOffsetY, int pendingScrollPosition, int pendingScrollAlignment) {
             mAnchorPosition = anchorPosition;
             mAnchorCorner = anchorCorner;
             mRelativeOffsetX = relativeOffsetX;
             mRelativeOffsetY = relativeOffsetY;
             mPendingScrollPosition = pendingScrollPosition;
+            mPendingScrollAlignment = pendingScrollAlignment;
         }
 
         @Override
@@ -530,6 +527,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             dest.writeInt(this.mRelativeOffsetX);
             dest.writeInt(this.mRelativeOffsetY);
             dest.writeInt(this.mPendingScrollPosition);
+            dest.writeInt(this.mPendingScrollAlignment);
         }
 
         protected SavedState(Parcel in) {
@@ -538,6 +536,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             this.mRelativeOffsetX = in.readInt();
             this.mRelativeOffsetY = in.readInt();
             this.mPendingScrollPosition = in.readInt();
+            this.mPendingScrollAlignment = in.readInt();
         }
 
         public static final Creator<SavedState> CREATOR = new Creator<SavedState>() {

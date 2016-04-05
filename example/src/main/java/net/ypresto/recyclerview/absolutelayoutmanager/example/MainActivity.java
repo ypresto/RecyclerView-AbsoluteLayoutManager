@@ -102,12 +102,19 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_scroll_to_bottom_minus_1:
                 ((RecyclerView) findViewById(R.id.recycler_view)).smoothScrollToPosition(mAdapter.getItemCount() - 2);
                 return true;
+            case R.id.action_scroll_to_5_bottom_aligned:
+                mAbsoluteLayoutManager.scrollToPositionWithAlignment(5, AbsoluteLayoutManager.SCROLL_ALIGNMENT_BOTTOM);
+                return true;
+            case R.id.action_scroll_to_5_center_aligned:
+                mAbsoluteLayoutManager.smoothScrollToPositionWithAlignment(this, 5, AbsoluteLayoutManager.SCROLL_ALIGNMENT_CENTER_VERTICAL);
+                return true;
             case R.id.action_change_layout:
                 if (mRecyclerView.getLayoutManager() == mAbsoluteLayoutManager) {
                     mRecyclerView.setLayoutManager(mGridLayoutManager);
                 } else {
                     mRecyclerView.setLayoutManager(mAbsoluteLayoutManager);
                 }
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }

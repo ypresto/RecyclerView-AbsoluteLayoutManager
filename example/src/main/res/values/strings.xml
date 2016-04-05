@@ -2,4 +2,6 @@
     <string name="app_name">AbsoluteLayoutManagerExample</string>
     <string name="action_scroll_to_bottom_minus_1">Scroll To (Bottom - 1)</string>
     <string name="action_change_layout">Change Layout</string>
+    <string name="action_scroll_to_5_bottom_aligned">Bottom Aligned Scroll to 5</string>
+    <string name="action_scroll_to_5_center_aligned">Center Aligned Scroll to 5</string>
 </resources>
