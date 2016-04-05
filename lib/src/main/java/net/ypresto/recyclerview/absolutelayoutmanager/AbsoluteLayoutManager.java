@@ -27,6 +27,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
+import net.ypresto.recyclerview.absolutelayoutmanager.AbsoluteLayoutManager.LayoutProvider.LayoutAttribute;
+
 import java.util.List;
 
 // TODO: predictive item animations
@@ -194,8 +196,8 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         if (DEBUG) {
             Log.v(TAG, "filling for rect: " + rectToFill);
         }
-        List<LayoutProvider.LayoutAttribute> layoutAttributes = mLayoutProvider.getLayoutAttributesInRect(rectToFill);
-        for (LayoutProvider.LayoutAttribute layoutAttribute : layoutAttributes) {
+        List<LayoutAttribute> layoutAttributes = mLayoutProvider.getLayoutAttributesInRect(rectToFill);
+        for (LayoutAttribute layoutAttribute : layoutAttributes) {
             if (rectToExclude != null && layoutAttribute.isIntersectWithRect(rectToExclude)) {
                 continue;
             }
@@ -284,7 +286,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
     private Point calculateScrollOffsetToShowPositionIfPossible(int position, int scrollAlignment) {
         if (position >= getItemCount()) return null;
-        LayoutProvider.LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(position);
+        LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(position);
         Rect layoutSpaceRect = createRect(mCurrentScrollOffset.x, mCurrentScrollOffset.y, getLayoutSpaceWidth(), getLayoutSpaceHeight());
         return ScrollHelper.calculateScrollOffsetToShowItem(layoutAttribute, layoutSpaceRect, scrollAlignment);
     }
@@ -391,7 +393,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
     private void restoreFromSavedState(SavedState savedState) {
         if (savedState.mAnchorPosition != NO_POSITION) {
-            LayoutProvider.LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(savedState.mAnchorPosition);
+            LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(savedState.mAnchorPosition);
             Point point = savedState.mAnchorCorner.getPointForRect(layoutAttribute.mRect);
             mCurrentScrollOffset.set(point.x + savedState.mRelativeOffsetX, point.y + savedState.mRelativeOffsetY);
         }
