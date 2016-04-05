@@ -11,7 +11,7 @@ abstract class CenterAwareLinearSmoothScroller extends LinearSmoothScroller {
     private final boolean mSnapToHorizontalCenter;
     private final boolean mSnapToVerticalCenter;
 
-    public CenterAwareLinearSmoothScroller(Context context, int scrollAlignment) {
+    CenterAwareLinearSmoothScroller(Context context, int scrollAlignment) {
         super(context);
         mSnapToHorizontalCenter = (scrollAlignment & SCROLL_ALIGNMENT_CENTER_HORIZONTAL) != 0;
         mSnapToVerticalCenter = (scrollAlignment & SCROLL_ALIGNMENT_CENTER_VERTICAL) != 0;

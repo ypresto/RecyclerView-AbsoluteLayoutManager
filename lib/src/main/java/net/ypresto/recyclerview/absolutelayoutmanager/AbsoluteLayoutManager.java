@@ -392,7 +392,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     private void restoreFromSavedState(SavedState savedState) {
-        if (savedState.mAnchorPosition != NO_POSITION) {
+        if (savedState.mAnchorPosition != NO_POSITION && savedState.mAnchorPosition < getItemCount()) {
             LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(savedState.mAnchorPosition);
             Point point = savedState.mAnchorCorner.getPointForRect(layoutAttribute.mRect);
             mCurrentScrollOffset.set(point.x + savedState.mRelativeOffsetX, point.y + savedState.mRelativeOffsetY);
