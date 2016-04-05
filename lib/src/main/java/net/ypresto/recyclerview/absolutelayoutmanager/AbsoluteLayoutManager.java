@@ -18,7 +18,7 @@ package net.ypresto.recyclerview.absolutelayoutmanager;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.os.Bundle;
+import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
@@ -34,9 +34,6 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     private static final float MINIMUM_FILL_SCALE_FACTOR = 0.0f;
     private static final float MAXIMUM_FILL_SCALE_FACTOR = 0.33f; // MAX_SCROLL_FACTOR of LinearLayoutManager
     private static final int NO_POSITION = RecyclerView.NO_POSITION;
-    // NOTE: Point as Parcelable is only on API >= 13.
-    private static final String STATE_SCROLL_OFFSET_X = "scrollOffsetX";
-    private static final String STATE_SCROLL_OFFSET_Y = "scrollOffsetY";
     private static boolean DEBUG = false;
 
     private final LayoutProvider mLayoutProvider;
@@ -47,6 +44,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     private int mScrollContentHeight = 0;
     private Rect mFilledRect = new Rect();
     private int mPendingScrollPosition = NO_POSITION;
+    private SavedState mPendingSavedState;
 
     public AbsoluteLayoutManager(LayoutProvider layoutProvider) {
         mLayoutProvider = layoutProvider;
@@ -226,7 +224,13 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
-        prepareLayoutProvider(state);
+        prepareLayoutProvider();
+        if (mPendingSavedState != null) {
+            // TODO: Consider deferring restore until getItemCount() > 0.
+            restoreFromSavedState(mPendingSavedState);
+            mPendingSavedState = null;
+        }
+
         if (mPendingScrollPosition != NO_POSITION) {
             Point scrollOffset = calculateScrollOffsetToShowPositionIfPossible(mPendingScrollPosition);
             if (scrollOffset != null) {
@@ -312,12 +316,9 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         requestLayout();
     }
 
-    private void prepareLayoutProvider(RecyclerView.State state) {
-        if (state.didStructureChange()) {
-            mIsLayoutProviderDirty = true;
-        }
-        if (mLayoutProvider.mLayoutManagerState.mLayoutSpaceWidth != getLayoutSpaceWidth() ||
-                mLayoutProvider.mLayoutManagerState.mLayoutSpaceHeight != getLayoutSpaceHeight()) {
+    private void prepareLayoutProvider() {
+        if (mLayoutProvider.mLayoutManagerState.mLayoutSpaceWidth != getLayoutSpaceWidth()
+                || mLayoutProvider.mLayoutManagerState.mLayoutSpaceHeight != getLayoutSpaceHeight()) {
             mIsLayoutProviderDirty = true;
         }
 
@@ -340,41 +341,72 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     @Override
-    public void onItemsUpdated(RecyclerView recyclerView, int positionStart, int itemCount) {
-        // It is not structure change, but we want to recalculate layout.
+    public void onItemsChanged(RecyclerView recyclerView) {
         mIsLayoutProviderDirty = true;
     }
 
     @Override
-    public Parcelable onSaveInstanceState() {
-        Bundle state = new Bundle();
-        Point scrollOffset = mCurrentScrollOffset;
-        if (mPendingScrollPosition != NO_POSITION) {
-            // TODO: Scroll offset for the position may be changed after restoration.
-            Point pendingScrollOffset = calculateScrollOffsetToShowPositionIfPossible(mPendingScrollPosition);
-            if (pendingScrollOffset != null) {
-                scrollOffset = pendingScrollOffset;
-            }
+    public void onItemsAdded(RecyclerView recyclerView, int positionStart, int itemCount) {
+        mIsLayoutProviderDirty = true;
+    }
+
+    @Override
+    public void onItemsRemoved(RecyclerView recyclerView, int positionStart, int itemCount) {
+        mIsLayoutProviderDirty = true;
+    }
+
+    @Override
+    public void onItemsMoved(RecyclerView recyclerView, int from, int to, int itemCount) {
+        mIsLayoutProviderDirty = true;
+    }
+
+    @Override
+    public void onItemsUpdated(RecyclerView recyclerView, int positionStart, int itemCount) {
+        mIsLayoutProviderDirty = true;
+    }
+
+    @Override
+    public SavedState onSaveInstanceState() {
+        if (mPendingSavedState != null) {
+            return mPendingSavedState;
         }
-        state.putInt(STATE_SCROLL_OFFSET_X, scrollOffset.x);
-        state.putInt(STATE_SCROLL_OFFSET_Y, scrollOffset.y);
-        return state;
+
+        if (getItemCount() == 0) {
+            return SavedState.empty();
+        }
+
+        prepareLayoutProvider();
+        AnchorHelper.AnchorInfo anchor = AnchorHelper.calculateAnchorItemInRect(mLayoutProvider, mCurrentScrollOffset, getVisibleRect());
+        Point point = anchor.getPoint();
+        int relativeOffsetX = mCurrentScrollOffset.x - point.x;
+        int relativeOffsetY = mCurrentScrollOffset.y - point.y;
+        if (DEBUG) {
+            Log.v(TAG, "Saving AnchorInfo, position: " + anchor.mLayoutAttribute.getPosition()
+                    + ", corner: " + anchor.mCorner
+                    + " relativeOffsetX: " + relativeOffsetX
+                    + " relativeOffsetY: " + relativeOffsetY);
+        }
+        return new SavedState(anchor.mLayoutAttribute.getPosition(), anchor.mCorner, relativeOffsetX, relativeOffsetY, mPendingScrollPosition);
+    }
+
+    private void restoreFromSavedState(SavedState savedState) {
+        if (savedState.mAnchorPosition != NO_POSITION) {
+            LayoutProvider.LayoutAttribute layoutAttribute = mLayoutProvider.getLayoutAttributeForItemAtPosition(savedState.mAnchorPosition);
+            Point point = savedState.mAnchorCorner.getPointForRect(layoutAttribute.mRect);
+            mCurrentScrollOffset.set(point.x + savedState.mRelativeOffsetX, point.y + savedState.mRelativeOffsetY);
+        }
+        if (mPendingScrollPosition == NO_POSITION) {
+            mPendingScrollPosition = savedState.mPendingScrollPosition;
+        }
     }
 
     @Override
     public void onRestoreInstanceState(Parcelable state) {
-        if (!(state instanceof Bundle)) {
+        if (!(state instanceof SavedState)) {
             Log.e(TAG, "Invalid state object is passed for onRestoreInstanceState: " + state.getClass().getName());
             return;
         }
-        Bundle bundle = (Bundle) state;
-        if (!(bundle.containsKey(STATE_SCROLL_OFFSET_X) && bundle.containsKey(STATE_SCROLL_OFFSET_Y))) {
-            Log.e(TAG, "Invalid state object is passed, keys " + STATE_SCROLL_OFFSET_X + " and " + STATE_SCROLL_OFFSET_Y + " is required.");
-            return;
-        }
-        int scrollOffsetX = bundle.getInt(STATE_SCROLL_OFFSET_X);
-        int scrollOffsetY = bundle.getInt(STATE_SCROLL_OFFSET_Y);
-        mCurrentScrollOffset.set(scrollOffsetX, scrollOffsetY);
+        mPendingSavedState = (SavedState) state;
         requestLayout();
     }
 
@@ -433,7 +465,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     @Override
     public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state,
                                        int position) {
-        prepareLayoutProvider(state);
+        prepareLayoutProvider();
         LinearSmoothScroller linearSmoothScroller =
                 new LinearSmoothScroller(recyclerView.getContext()) {
                     @Override
@@ -462,6 +494,63 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
     private enum Direction {
         LEFT, TOP, RIGHT, BOTTOM
+    }
+
+    /**
+     * Keeps position of anchoring view and relative offset from that position.
+     */
+    private static class SavedState implements Parcelable {
+        private final int mAnchorPosition;
+        private final AnchorHelper.Corner mAnchorCorner;
+        private final int mRelativeOffsetX;
+        private final int mRelativeOffsetY;
+        private final int mPendingScrollPosition;
+
+        static SavedState empty() {
+            return new SavedState(NO_POSITION, null, 0, 0, NO_POSITION);
+        }
+
+        SavedState(int anchorPosition, AnchorHelper.Corner anchorCorner, int relativeOffsetX, int relativeOffsetY, int pendingScrollPosition) {
+            mAnchorPosition = anchorPosition;
+            mAnchorCorner = anchorCorner;
+            mRelativeOffsetX = relativeOffsetX;
+            mRelativeOffsetY = relativeOffsetY;
+            mPendingScrollPosition = pendingScrollPosition;
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeInt(this.mAnchorPosition);
+            dest.writeSerializable(this.mAnchorCorner);
+            dest.writeInt(this.mRelativeOffsetX);
+            dest.writeInt(this.mRelativeOffsetY);
+            dest.writeInt(this.mPendingScrollPosition);
+        }
+
+        protected SavedState(Parcel in) {
+            this.mAnchorPosition = in.readInt();
+            this.mAnchorCorner = (AnchorHelper.Corner) in.readSerializable();
+            this.mRelativeOffsetX = in.readInt();
+            this.mRelativeOffsetY = in.readInt();
+            this.mPendingScrollPosition = in.readInt();
+        }
+
+        public static final Creator<SavedState> CREATOR = new Creator<SavedState>() {
+            @Override
+            public SavedState createFromParcel(Parcel source) {
+                return new SavedState(source);
+            }
+
+            @Override
+            public SavedState[] newArray(int size) {
+                return new SavedState[size];
+            }
+        };
     }
 
     public abstract static class LayoutProvider {
@@ -540,7 +629,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
 
         public static class LayoutAttribute {
             private final int mPosition;
-            private final Rect mRect;
+            final Rect mRect;
 
             /**
              * Create layout attributes for item at position.
