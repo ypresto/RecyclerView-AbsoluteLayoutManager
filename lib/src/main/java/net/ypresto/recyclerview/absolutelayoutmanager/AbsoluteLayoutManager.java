@@ -48,6 +48,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     private static final int NO_POSITION = RecyclerView.NO_POSITION;
     private static boolean DEBUG = false;
 
+    private final RecyclerView.AdapterDataObserver mAdapterObserver = new AdapterObserver();
     private final LayoutProvider mLayoutProvider;
     private boolean mIsLayoutProviderDirty;
     private final Point mCurrentScrollOffset = new Point(0, 0);
@@ -318,7 +319,17 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             mIsLayoutProviderDirty = true;
         }
 
-        if (!mIsLayoutProviderDirty) return;
+        if (!mIsLayoutProviderDirty) {
+            if (mLayoutProvider.mLayoutManagerState.mItemCount != getItemCount()) {
+                throw new IllegalStateException(
+                        "The item count of the adapter has been changed but hosting RecyclerView "
+                                + "did not receive notification. Please ensure to call "
+                                + "notifyDataSetChanged() or notifyItem***() method. "
+                                + "[ in AbsoluteLayoutManager(" + getLayoutProvider() + ") ]"
+                );
+            }
+            return;
+        }
         mFilledRect = new Rect(); // invalidate cache
         mLayoutProvider.mLayoutManagerState = new LayoutProvider.LayoutManagerState(
                 getLayoutSpaceWidth(),
@@ -334,31 +345,30 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     public void onAttachedToWindow(RecyclerView view) {
         // It is happen when setLayoutManager() is called.
         mIsLayoutProviderDirty = true;
+        RecyclerView.Adapter<?> adapter = view.getAdapter();
+        if (adapter != null) {
+            adapter.registerAdapterDataObserver(mAdapterObserver);
+        }
     }
 
     @Override
-    public void onItemsChanged(RecyclerView recyclerView) {
-        mIsLayoutProviderDirty = true;
+    public void onDetachedFromWindow(RecyclerView view, RecyclerView.Recycler recycler) {
+        RecyclerView.Adapter<?> adapter = view.getAdapter();
+        if (adapter != null) {
+            adapter.unregisterAdapterDataObserver(mAdapterObserver);
+        }
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
-    public void onItemsAdded(RecyclerView recyclerView, int positionStart, int itemCount) {
+    public void onAdapterChanged(RecyclerView.Adapter oldAdapter, RecyclerView.Adapter newAdapter) {
         mIsLayoutProviderDirty = true;
-    }
-
-    @Override
-    public void onItemsRemoved(RecyclerView recyclerView, int positionStart, int itemCount) {
-        mIsLayoutProviderDirty = true;
-    }
-
-    @Override
-    public void onItemsMoved(RecyclerView recyclerView, int from, int to, int itemCount) {
-        mIsLayoutProviderDirty = true;
-    }
-
-    @Override
-    public void onItemsUpdated(RecyclerView recyclerView, int positionStart, int itemCount) {
-        mIsLayoutProviderDirty = true;
+        if (oldAdapter != null) {
+            oldAdapter.unregisterAdapterDataObserver(mAdapterObserver);
+        }
+        if (newAdapter != null) {
+            newAdapter.registerAdapterDataObserver(mAdapterObserver);
+        }
     }
 
     @Override
@@ -475,10 +485,10 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     public void smoothScrollToPositionWithAlignment(Context context, int position, final int scrollAlignment) {
-        prepareLayoutProvider();
         LinearSmoothScroller linearSmoothScroller = new CenterAwareLinearSmoothScroller(context, scrollAlignment) {
             @Override
             public PointF computeScrollVectorForPosition(int targetPosition) {
+                prepareLayoutProvider();
                 Point targetScrollOffset = calculateScrollOffsetToShowPositionIfPossible(targetPosition, scrollAlignment);
                 if (targetScrollOffset == null) return null;
                 normalizeScrollOffset(targetScrollOffset);
@@ -689,6 +699,40 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
             public boolean isIntersectWithRect(Rect rect) {
                 return AbsoluteLayoutManager.checkIfRectsIntersect(mRect, rect);
             }
+        }
+    }
+
+    /*
+     * onItemsChanged() and its family methods are lazy: called in
+     * processAdapterUpdatesAndSetAnimationFlags() from dispatchLayout(). So they are not suitable
+     * for invalidating layout provider which can be accessed before layout (e.g. from
+     * onSaveInstanceState()).
+     * Refer: https://github.com/ypresto/RecyclerView-AbsoluteLayoutManager/issues/7
+     */
+    private class AdapterObserver extends RecyclerView.AdapterDataObserver {
+        @Override
+        public void onChanged() {
+            mIsLayoutProviderDirty = true;
+        }
+
+        @Override
+        public void onItemRangeChanged(int positionStart, int itemCount) {
+            mIsLayoutProviderDirty = true;
+        }
+
+        @Override
+        public void onItemRangeInserted(int positionStart, int itemCount) {
+            mIsLayoutProviderDirty = true;
+        }
+
+        @Override
+        public void onItemRangeRemoved(int positionStart, int itemCount) {
+            mIsLayoutProviderDirty = true;
+        }
+
+        @Override
+        public void onItemRangeMoved(int fromPosition, int toPosition, int itemCount) {
+            mIsLayoutProviderDirty = true;
         }
     }
 }
