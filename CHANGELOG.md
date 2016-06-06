@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+Version 0.2.1
+----------------------------
+
+- Fix occasional crash at onSaveInstanceState() (#7)
+
 Version 0.2.0
 ----------------------------
 
