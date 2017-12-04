@@ -27,6 +27,11 @@ It is just same as UICollectionViewLayout. :)
 
 See [example](example/src/main/java/net/ypresto/recyclerview/absolutelayoutmanager/example/SquareVerticalLayoutProvider.java).
 
+If you want to divide screen into columns or to use fixed width space
+between cells, you will end up to fight with 1px layout shift.
+To keep away from rounding error, you can use [SpanCalculator](example/src/main/java/net/ypresto/recyclerview/absolutelayoutmanager/SpanCalculator.java
+class to calculate absolute start / end pixel of each columns in length to be
+divided.
 
 TODO
 ----
