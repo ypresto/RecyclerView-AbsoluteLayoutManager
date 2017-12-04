@@ -364,6 +364,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     @Override
     public void onAdapterChanged(RecyclerView.Adapter oldAdapter, RecyclerView.Adapter newAdapter) {
         mIsLayoutProviderDirty = true;
+        if (!isAttachedToWindow()) return; // Observer is only registered while attached.
         if (oldAdapter != null) {
             oldAdapter.unregisterAdapterDataObserver(mAdapterObserver);
         }
@@ -486,6 +487,12 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     }
 
     public void smoothScrollToPositionWithAlignment(Context context, int position, final int scrollAlignment) {
+        if (!isAttachedToWindow()) {
+            // NOTE: startSmoothScroll() references mRecyclerView and it will crash when RecyclerView
+            // is not attached to LayoutManager.
+            scrollToPositionWithAlignment(position, scrollAlignment);
+            return;
+        }
         LinearSmoothScroller linearSmoothScroller = new CenterAwareLinearSmoothScroller(context, scrollAlignment) {
             @Override
             public PointF computeScrollVectorForPosition(int targetPosition) {
