@@ -50,7 +50,7 @@ Gradle:
 ```groovy
 dependencies {
     implementation 'com.android.support:recyclerview-v7:X.Y.Z'
-    implementation 'net.ypresto.recyclerview.absolutelayoutmanager:absolutelayoutmanager:0.3.0'
+    implementation 'net.ypresto.recyclerview.absolutelayoutmanager:absolutelayoutmanager:0.3.1'
 }
 ```
 
