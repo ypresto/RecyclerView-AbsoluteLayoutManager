@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+Version 0.3.0
+----------------------------
+
+- Use newer sdk, support lib and gradle plugin
+- Add SpanCalculator class
+- Fix lint and javadoc warnings
+
 Version 0.2.1
 ----------------------------
 
