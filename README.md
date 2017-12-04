@@ -40,12 +40,6 @@ TODO
 - Predictive animation is not supported yet.
 
 
-Compatibility
-----
-
-Tested with recyclerview-v7:22.1.1.
-
-
 Installation
 ----
 
@@ -55,8 +49,8 @@ Gradle:
 
 ```groovy
 dependencies {
-    compile 'com.android.support:recyclerview-v7:X.Y.Z'
-    compile 'net.ypresto.recyclerview.absolutelayoutmanager:absolutelayoutmanager:0.2.0'
+    implementation 'com.android.support:recyclerview-v7:X.Y.Z'
+    implementation 'net.ypresto.recyclerview.absolutelayoutmanager:absolutelayoutmanager:0.3.0'
 }
 ```
 
