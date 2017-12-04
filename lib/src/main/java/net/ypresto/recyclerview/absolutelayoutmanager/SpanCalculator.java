@@ -4,7 +4,7 @@ package net.ypresto.recyclerview.absolutelayoutmanager;
  * Calculate offset for each span, coping with decimal pixels.
  * This is necessary to align column border, by normalizing x position of cells in each row.
  * Note that Android only supports integer rect.
- * So length of span may vary for each index (<= +-1px).
+ * So length of span may vary for each index (&lt;= +-1px).
  */
 public class SpanCalculator {
     private final int mInterItemSpacing;

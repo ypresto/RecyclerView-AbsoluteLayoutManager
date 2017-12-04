@@ -344,6 +344,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
     @Override
     public void onAttachedToWindow(RecyclerView view) {
         // It is happen when setLayoutManager() is called.
+        super.onAttachedToWindow(view);
         mIsLayoutProviderDirty = true;
         RecyclerView.Adapter<?> adapter = view.getAdapter();
         if (adapter != null) {
@@ -568,6 +569,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         private LayoutManagerState mLayoutManagerState = new LayoutManagerState();
 
         /**
+         * @return Width of visible area inside of padding.
          * @deprecated Use {@link #getState()}.
          */
         @Deprecated
@@ -576,6 +578,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
 
         /**
+         * @return Height of visible area inside of padding.
          * @deprecated Use {@link #getState()}.
          */
         @Deprecated
@@ -584,6 +587,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
 
         /**
+         * @return Item count retrieved from adapter.
          * @deprecated Use {@link #getState()}.
          */
         @Deprecated
@@ -592,7 +596,7 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
         }
 
         /**
-         * Returns current state of layout manager, including size of layout space and item count.
+         * @return current state of layout manager, including size of layout space and item count.
          */
         public final LayoutManagerState getState() {
             return mLayoutManagerState;
@@ -625,14 +629,23 @@ public class AbsoluteLayoutManager extends RecyclerView.LayoutManager {
                 mItemCount = 0;
             }
 
+            /**
+             * @return Width of visible area inside of padding.
+             */
             public int getLayoutSpaceWidth() {
                 return mLayoutSpaceWidth;
             }
 
+            /**
+             * @return Height of visible area inside of padding.
+             */
             public int getLayoutSpaceHeight() {
                 return mLayoutSpaceHeight;
             }
 
+            /**
+             * @return Item count retrieved from adapter.
+             */
             public int getItemCount() {
                 return mItemCount;
             }
